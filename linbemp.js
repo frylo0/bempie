@@ -44,7 +44,7 @@ function insertToFiles(files) {
 
 function help() {
     let help = `
-    > linbemp source target [-pug] [-sass] [-js]
+    > linbemp source target [-pug] [-sass] [-js] [-end]
 
     where:
         source - source entity
@@ -53,6 +53,7 @@ function help() {
         -pug - don't create link in target pug file
         -sass - don't create link in target sass file
         -js - don't create link in target js file
+        -end - push link to the end of target files
 
     works:
         insert relative link to source into begin of target
@@ -70,6 +71,7 @@ async function main() {
     const isNoPug = argv.find(arg => arg.match(/^-pug/));
     const isNoSass = argv.find(arg => arg.match(/^-sass/));
     const isNoJs = argv.find(arg => arg.match(/^-js/));
+    const linksToTheEnd = argv.find(arg => arg.match(/^-end/));
 
     const source = resolve(dir, argv[0]);
     const target = resolve(dir, argv[1]);
@@ -104,21 +106,21 @@ async function main() {
     if (!isNoPug)
         insertion.push({
             filename: resolve(target, targetPug),
-            insertPosition: 0,
+            insertPosition: linksToTheEnd ? true : 0,
             data: `include ${link}.pug\n`
         });
 
     if (!isNoSass)
         insertion.push({
             filename: resolve(target, targetSass),
-            insertPosition: 0,
+            insertPosition: linksToTheEnd ? true : 0,
             data: `@import ${link}\n`
         });
 
     if (!isNoJs)
         insertion.push({
             filename: resolve(target, targetJs),
-            insertPosition: 0,
+            insertPosition: linksToTheEnd ? true : 0,
             data: `import './${link}';\n`
         });
 
