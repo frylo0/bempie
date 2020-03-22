@@ -42,7 +42,7 @@ function help() {
 
 async function main() {
 
-    if (argv.some(arg => arg.match(/(--help|\/\?)/))) {
+    if (argv.length == 0 || argv.some(arg => arg.match(/(--help|\/\?)/))) {
         help();
         process.exit();
     }
