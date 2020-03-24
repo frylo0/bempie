@@ -98,7 +98,8 @@ async function main() {
         //element mode
         //element->any
         const elementName = elementOrBlock.replace(/^__/, '');
-        const blockName = linkWaySplit.pop();
+        let blockName = linkWaySplit.pop();
+        if (!blockName) dir.split(/[\/\\]/).pop();
         link = join(linkWay, `${blockName}__${elementName}`);
     }
 
