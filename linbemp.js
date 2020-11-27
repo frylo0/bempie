@@ -4,6 +4,7 @@ async function linbemp(argv) {
         { resolve, relative, join } = require('path'),
         readline = require('readline').createInterface(process.stdin, process.stdout);
 
+    // kind of Console.ReadLine
     async function ask(question) {
         return new Promise(resolve => {
             readline.question(question, answer => {
@@ -25,113 +26,168 @@ async function linbemp(argv) {
      * @param {Array<InsertionData>} files - insertion data
      */
     function insertToFiles(files) {
-        for (const insertionData of files) {
-            const fileContent = fs.readFileSync(insertionData.filename);
-            if (typeof insertionData.insertPosition == "boolean") {
-                if (insertionData.insertPosition) {
+        // args: files - array of insertion data objects, each in format {filename, insertPosition, data}
+        for (const insertionData of files) { // iteration in all 
+            const fileContent = fs.readFileSync(insertionData.filename); // reading target file content
+            if (typeof insertionData.insertPosition == "boolean") { // if insert position is true or false
+                if (insertionData.insertPosition) { // if true means end of file
                     insertionData.insertPosition = fileContent.length;
-                } else {
+                } else { // if false means start of file
                     insertionData.insertPosition = 0;
                 }
             }
-            const newContent =
+            const newContent = // inserting data to file content
                 fileContent.slice(0, insertionData.insertPosition) +
                 insertionData.data +
                 fileContent.slice(insertionData.insertPosition);
-            fs.writeFileSync(insertionData.filename, newContent);
+            fs.writeFileSync(insertionData.filename, newContent); // updating file content
         }
     };
 
     function help() {
         let help = `
-    > linbemp source target [-pug] [-sass] [-js] [-end]
+    > linbemp source target -jpsJPS
 
     where:
         source - source entity
         target - entity to add link to source entity
         --------------------------------
-        -pug - don't create link in target pug file
-        -sass - don't create link in target sass file
-        -js - don't create link in target js file
-        -end - push link to the end of target files
+        * letter size as association to TOP (file start) and bottom (file end)
+
+        -j - js file add link at END
+        -J - js file add link at START
+        -s - sass file add link at END
+        -S - sass file add link at START
+        -p - pug file add link at END
+        -P - pug file add link at START
+
+        If no params given using default -PSJ (all links in start of file).
+        You can use any combination, e.g. -psjPSJ, -pS or -pPjJ and so on.
+        Order of params doesn't matter.
 
     works:
         insert relative link to source into begin of target
+
+    examples:
+        1) insert link to menu into bundle files:
+        linbemp Block/menu ./   - start of all files
+        linbemp Block/menu ./ -P  - just start of pug file
+        linbemp Block/menu ./ -pP  - just start and end of pug file
+        linbemp Block/menu ./ -jsp  - end of all files
+        linbemp Block/menu ./ -jspJSP  - start and end of all files
+        2) from blocks folder, menu to bundle:
+        linbemp menu ../   - start of all files
     `;
         console.log(help);
     }
 
     async function main() {
 
+        // if help just print help
         if (argv.length == 0 || argv.some(arg => arg.match(/(--help|\/\?)/))) {
-            help(); return;
+            help(); return; // print help and exit
         }
 
-        const isNoPug = argv.find(arg => arg.match(/^-pug/));
-        const isNoSass = argv.find(arg => arg.match(/^-sass/));
-        const isNoJs = argv.find(arg => arg.match(/^-js/));
-        const linksToTheEnd = argv.find(arg => arg.match(/^-end/));
+        // taking insert params
+        let params = [];
+        // if params sended
+        if (argv[argv.length - 1].startsWith('-')) {
+            params = argv.pop().split(''); // to char array
+            params.shift(); // -PjS - removing '-'
+        } else { // else using default params
+            params = 'PSJ'.split(''); // all to begin of file
+        }
 
+        // source - folder to link
+        // target - folder from link to source
         const source = resolve(dir, argv[0]);
         const target = resolve(dir, argv[1]);
 
-        //console.log(`Source: ${source}`);
-        //console.log(`Target: ${target}`);
-
+        // filenames in target folder
         const targetDir = fs.readdirSync(target);
-        const targetPug = targetDir.find(filename => filename.match(/.pug$/));
-        const targetSass = targetDir.find(filename => filename.match(/.sass$/));
-        const targetJs = targetDir.find(filename => filename.match(/.js$/));
+        const targetPugFilename = targetDir.find(filename => filename.match(/.pug$/)) || '';
+        const targetSassFilename = targetDir.find(filename => filename.match(/.sass$/)) || '';
+        const targetJsFilename = targetDir.find(filename => filename.match(/.js$/)) || '';
 
-        let link;
-        const linkWay = relative(target, source);
-        const linkWaySplit = linkWay.split(/[\/\\]/);
-        const elementOrBlock = linkWaySplit.pop();
+        let link; // link string
+        const linkWay = relative(target, source); // way from target to source
+        const linkWaySplit = linkWay.split(/[\/\\]/); // way to array of folders
+        const elementOrBlock = linkWaySplit.pop(); // source last folder
 
-        if (!elementOrBlock.match(/^__/)) {
-            //block mode
-            //block->any;
+        if (!elementOrBlock.match(/^__/)) { // if source last folder NOT in format '__{any}'
+            // then BLOCK mode
+            // block->any;
             const blockName = elementOrBlock;
-            link = join(linkWay, blockName);
-        } else {
-            //element mode
-            //element->any
-            const elementName = elementOrBlock.replace(/^__/, '');
-            let blockName = linkWaySplit.pop();
-            if (!blockName) blockName = target.split(/[\/\\]/).pop(); //OK
-            link = join(linkWay, `${blockName}__${elementName}`);
+            link = join(linkWay, blockName); // we have link to block
+        } else { // else source last folder IN format '__{any}'
+            // so ELEMENT mode
+            // element->any
+            const elementName = elementOrBlock.replace(/^__/, ''); // taking element name
+            let blockName = linkWaySplit.pop(); // pop again to take block name
+            if (!blockName) blockName = target.split(/[\/\\]/).pop(); // if bad relative link (e.g. './../') then block name in target full path
+            link = join(linkWay, `${blockName}__${elementName}`); // we have link to element now
         }
 
-        const insertion = [];
-        if (!isNoPug)
+        const insertion = []; // array of params for insertToFiles function
+        // checking params
+        // param: pug file end
+        if (paramsHas('p'))
             insertion.push({
-                filename: resolve(target, targetPug),
-                insertPosition: linksToTheEnd ? true : 0,
+                filename: resolve(target, targetPugFilename),
+                insertPosition: true,
                 data: `include ${link}.pug\n`
             });
-
-        if (!isNoSass)
+        // param: pug file start
+        if (paramsHas('P'))
             insertion.push({
-                filename: resolve(target, targetSass),
-                insertPosition: linksToTheEnd ? true : 0,
+                filename: resolve(target, targetPugFilename),
+                insertPosition: 0,
+                data: `include ${link}.pug\n`
+            });
+        // param: sass file end
+        if (paramsHas('s'))
+            insertion.push({
+                filename: resolve(target, targetSassFilename),
+                insertPosition: true,
                 data: `@import ${link}\n`
             });
-
-        if (!isNoJs)
+        // param: sass file start
+        if (paramsHas('S'))
             insertion.push({
-                filename: resolve(target, targetJs),
-                insertPosition: linksToTheEnd ? true : 0,
+                filename: resolve(target, targetSassFilename),
+                insertPosition: 0,
+                data: `@import ${link}\n`
+            });
+        // param: 
+        if (paramsHas('j'))
+            insertion.push({
+                filename: resolve(target, targetJsFilename),
+                insertPosition: true,
+                data: `import './${link}';\n`
+            });
+        if (paramsHas('J'))
+            insertion.push({
+                filename: resolve(target, targetJsFilename),
+                insertPosition: 0,
                 data: `import './${link}';\n`
             });
 
-        insertToFiles(insertion);
+        insertToFiles(insertion); // inserting all links to files
 
         return;
+
+        /**
+         * check given param is in params array
+         * @returns {boolean} is param in params array */
+        function paramsHas(paramName) {
+            return params.indexOf(paramName) > -1;
+        }
     }
 
     await main();
 }
 
+// script can be independent or module
 if (require.main == module) {
     linbemp(process.argv.slice(2)).then(() => process.exit());
 } else {
