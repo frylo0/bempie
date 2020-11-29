@@ -80,7 +80,7 @@ async function crebemp(argv) {
          [blockFilenameBasis + '.js']: `$(document).ready(() => {
    const pref = '${blockName}'; // prefix for current folder
    
-   
+   $(pref+'')
 });`
       });
 
