@@ -77,11 +77,11 @@ async function crebemp(argv) {
       `,
          [blockFilenameBasis + '.sass']: `.${blockName}
    `,
-         [blockFilenameBasis + '.js']: `$(document).ready(() => {
-   const pref = '.${blockName}'; // prefix for current folder
-   
-   $(pref+'')
-});`
+         [blockFilenameBasis + '.js']: `//$(document).ready(() => {
+//   const pref = '.${blockName}'; // prefix for current folder
+//   
+//   $(pref+'')
+//});`
       });
 
       return;
