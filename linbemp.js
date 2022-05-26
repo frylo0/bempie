@@ -1,8 +1,14 @@
 async function linbemp(argv) {
     const fs = require('fs'),
         { exec } = require('child_process'),
-        { resolve, relative, join } = require('path'),
+        { resolve, relative, pathJoin } = require('path'),
         readline = require('readline').createInterface(process.stdin, process.stdout);
+    
+    function join(...parts) {
+        parts = parts.map(part => part.replace(/\\/g, '/'));
+        return parts.join('/'); // force slash for paths
+        // return pathJoin(...parts); // system preference delimeter
+    }
 
     // kind of Console.ReadLine
     async function ask(question) {
