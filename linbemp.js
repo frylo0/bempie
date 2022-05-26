@@ -9,6 +9,10 @@ async function linbemp(argv) {
         return parts.join('/'); // force slash for paths
         // return pathJoin(...parts); // system preference delimeter
     }
+    
+    function isFile(fullpath) {
+        return fs.statSync(fullpath).isFile();
+    }
 
     // kind of Console.ReadLine
     async function ask(question) {
@@ -117,7 +121,7 @@ async function linbemp(argv) {
         const target = resolve(dir, argv[1]);
         
         const getFilePath = (target, extensionRegex) => {
-            const isTargetAFile = fs.statSync(target).isFile();
+            const isTargetAFile = isFile(target);
             if (isTargetAFile) { // is file
                 const isMatchExtension = extensionRegex.test(target);
                 return isMatchExtension ? target : '';
@@ -133,10 +137,14 @@ async function linbemp(argv) {
         const targetJsFilename = getFilePath(target, /\.(mj|cj|t|j)s$/i);
 
         let link; // link string
-        const linkWay = relative(target, source); // way from target to source
+        let linkWay = relative(target, source); // way from target to source
+        
+        if (isFile(target) && linkWay.startsWith('..'))
+            linkWay = linkWay.replace(/^(\.[\/\\])?\.\.[\/\\]/, '');
+
         const linkWaySplit = linkWay.split(/[\/\\]/); // way to array of folders
         const elementOrBlock = linkWaySplit.pop(); // source last folder
-
+        
         if (!elementOrBlock.match(/^__/)) { // if source last folder NOT in format '__{any}'
             // then BLOCK mode
             // block->any;
