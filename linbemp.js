@@ -69,14 +69,21 @@ async function linbemp(argv) {
         insert relative link to source into begin of target
 
     examples:
+
         1) insert link to menu into bundle files:
         linbemp Block/menu ./   - start of all files
         linbemp Block/menu ./ -P  - just start of pug file
         linbemp Block/menu ./ -pP  - just start and end of pug file
         linbemp Block/menu ./ -jsp  - end of all files
         linbemp Block/menu ./ -jspJSP  - start and end of all files
+
         2) from blocks folder, menu to bundle:
         linbemp menu ../   - start of all files
+
+        3) to target file
+        linbemp menu ../Pages/home.pug -P  - add link to start of home.pug
+        linbemp menu ../Pages/home.scss -S  - add link to start of home.scss
+        linbemp menu ../Pages/home.js -J  - add link to start of home.js
     `;
         console.log(help);
     }
@@ -102,12 +109,22 @@ async function linbemp(argv) {
         // target - folder from link to source
         const source = resolve(dir, argv[0]);
         const target = resolve(dir, argv[1]);
+        
+        const getFilePath = (target, extensionRegex) => {
+            const isTargetAFile = fs.statSync(target).isFile();
+            if (isTargetAFile) { // is file
+                const isMatchExtension = extensionRegex.test(target);
+                return isMatchExtension ? target : '';
+            } else { // is dir
+                const targetDir = fs.readdirSync(target);
+                return targetDir.find(filename => extensionRegex.test(filename)) || '';
+            }
+        }
 
         // filenames in target folder
-        const targetDir = fs.readdirSync(target);
-        const targetPugFilename = targetDir.find(filename => filename.match(/.pug$/)) || '';
-        const targetSassFilename = targetDir.find(filename => filename.match(/.sass$/)) || '';
-        const targetJsFilename = targetDir.find(filename => filename.match(/.js$/)) || '';
+        const targetPugFilename = getFilePath(target, /\.pug$/i);
+        const targetSassFilename = getFilePath(target, /\.s[ac]ss$/i);
+        const targetJsFilename = getFilePath(target, /\.(mj|cj|t|j)s$/i);
 
         let link; // link string
         const linkWay = relative(target, source); // way from target to source
