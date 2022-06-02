@@ -1,3 +1,37 @@
+function genPugContent(blockName) {
+   return (
+`mixin ${blockName}()
+   .${blockName}&attributes(attributes)
+      `
+   );
+}
+
+function genSassContent(blockName, isScssMode) {
+   if (isScssMode) {
+      return (
+`.${blockName} {
+   
+}`
+      );
+   }
+   else {
+      return (
+`.${blockName}
+   `
+      );
+   }
+}
+
+function genJsContent(blockName) {
+   return (
+`//$(document).ready(() => {
+//   const pref = '.${blockName}'; // prefix for current folder
+//   
+//   $(\`\${pref}\`)
+//});`
+   );
+}
+
 async function crebemp(argv) {
    const fs = require('fs'),
       { exec } = require('child_process'),
@@ -23,11 +57,13 @@ async function crebemp(argv) {
 
    function help() {
       let help = `
-    > crebemp block_name [element_name]    
+    > crebemp block_name [element_name] [flags]
 
     where:
       block_name - name of target block
       element_name - name of target element
+      flags:
+         --scss or /scss - generate scss file (sass by default)
 
     works:
       if (!element_name)
@@ -41,13 +77,18 @@ async function crebemp(argv) {
    }
 
    async function main() {
+      let isScssMode = false, isSassMode = true;
+
       if (argv.length == 0 || argv.some(arg => arg.match(/(--help|\/\?)/))) {
          help(); return;
+      }
+      if (argv.some(arg => arg.match(/(--scss|\/\scss)/))) {
+         isScssMode = true; isSassMode = false;
       }
 
       let target = argv[0];
       const block = target;
-      const element = argv[1];
+      const element = argv[1] && !(argv[1].startsWith('--') || argv[1].startsWith('/')) ? argv[1] : undefined;
 
       let blockName = block.split(/[\/\\]/).pop();
 
@@ -72,16 +113,9 @@ async function crebemp(argv) {
       }
       const blockFilenameBasis = `${target}/${blockName}`;
       fs.createFilesSync({
-         [blockFilenameBasis + '.pug']: `mixin ${blockName}()
-   .${blockName}&attributes(attributes)
-      `,
-         [blockFilenameBasis + '.sass']: `.${blockName}
-   `,
-         [blockFilenameBasis + '.js']: `//$(document).ready(() => {
-//   const pref = '.${blockName}'; // prefix for current folder
-//   
-//   $(\`\${pref}\`)
-//});`
+         [blockFilenameBasis + '.pug']: genPugContent(blockName),
+         [blockFilenameBasis + (isSassMode ? '.sass' : '.scss')]: genSassContent(blockName, isScssMode),
+         [blockFilenameBasis + '.js']: genJsContent(blockName),
       });
 
       return;
