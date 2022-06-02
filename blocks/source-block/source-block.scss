@@ -1,0 +1,13 @@
+.source-block {
+   &__element {
+
+   }
+
+   &_mod {
+      .source-block {
+         &__element {
+            
+         }
+      }
+   }
+}
