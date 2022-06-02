@@ -136,6 +136,8 @@ async function linbemp(argv) {
         const targetSassFilename = getFilePath(target, /\.s[ac]ss$/i);
         const targetJsFilename = getFilePath(target, /\.(mj|cj|t|j)s$/i);
 
+        const isScssMode = targetSassFilename.endsWith('.scss');
+
         let link; // link string
         let linkWay = relative(target, source); // way from target to source
         
@@ -180,14 +182,18 @@ async function linbemp(argv) {
             insertion.push({
                 filename: resolve(target, targetSassFilename),
                 insertPosition: true,
-                data: `@import ${link}\n`
+                data: isScssMode
+                    ? `@import '${link}.scss';\n`
+                    : `@import ${link}\n`
             });
         // param: sass file start
         if (paramsHas('S'))
             insertion.push({
                 filename: resolve(target, targetSassFilename),
                 insertPosition: 0,
-                data: `@import ${link}\n`
+                data: isScssMode
+                    ? `@import '${link}.scss';\n`
+                    : `@import ${link}\n`
             });
         // param: 
         if (paramsHas('j'))
