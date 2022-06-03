@@ -71,7 +71,8 @@ async function renbemp(argv) {
             });
             renameEntity(blockFilenameBasis, 'js', oldName, newName, (oldName, newName, content) => {
                return content
-                  .replace(new RegExp(String.raw`\.${oldName}`, 'g'), `.${newName}`);
+                  .replace(new RegExp(String.raw`\.${oldName}`, 'g'), `.${newName}`)
+                  .replace(new RegExp(String.raw`(["'])${oldName}`, 'g'), `$1${newName}`);
             });
 
             // Rename folder
